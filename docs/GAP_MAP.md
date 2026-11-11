@@ -45,3 +45,23 @@
 ## NEEDS VALIDATION
 
 - Spatial/temporal holdout evaluation documented; no fabricated accuracy claims.
+
+
+## IMPLEMENTED IN THIS PHASE (UPDATE)
+
+- DataValidationPipeline (app/validation/pipeline.py)
+- StudyArea model (db/models.py)
+- DataSplitManager (app/training/split.py)
+- TrainingDatasetBuilder (app/training/dataset.py)
+- HFCE Platt calibration + calibrated_probability
+- Error analysis (app/ml/error_analysis.py)
+- RAG evaluation (app/rag/eval.py)
+- Multimodal adapter (app/ml/multimodal.py)
+- CLI expanded
+- 74 tests passing
+
+## HONEST STATUS
+
+- HFCE is EXPERIMENTAL/BOOTSTRAP until real evaluation.
+- No fabricated accuracy claims.
+- Deep learning only if scientifically justified.

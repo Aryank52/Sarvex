@@ -631,3 +631,18 @@ class ExperimentRun(UUIDMixin, TimestampMixin, Base):
     metrics: Mapped[dict[str, Any]] = mapped_column(JSON, default=dict)
     result_artifact: Mapped[str | None] = mapped_column(Text)
     status: Mapped[str] = mapped_column(String(24), default="COMPLETED")
+
+class StudyArea(UUIDMixin, TimestampMixin, Base):
+    __tablename__ = "study_areas"
+
+    name: Mapped[str] = mapped_column(String(200), index=True)
+    geometry: Mapped[dict[str, Any]] = mapped_column(JSON)
+    country: Mapped[str | None] = mapped_column(String(120))
+    purpose: Mapped[str | None] = mapped_column(String(200))
+    event_type: Mapped[str | None] = mapped_column(String(60))
+    time_range_start: Mapped[Any | None] = mapped_column(DateTime(timezone=True))
+    time_range_end: Mapped[Any | None] = mapped_column(DateTime(timezone=True))
+    reference_sources: Mapped[list[str]] = mapped_column(JSON, default=list)
+    available_products: Mapped[list[str]] = mapped_column(JSON, default=list)
+    validation_status: Mapped[str] = mapped_column(String(24), default="UNVALIDATED")
+    properties: Mapped[dict[str, Any]] = mapped_column(JSON, default=dict)

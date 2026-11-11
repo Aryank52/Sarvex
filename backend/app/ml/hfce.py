@@ -60,6 +60,7 @@ class HFCEPrediction:
     event_type: str
     probabilities: dict[str, float]
     change_probability: float
+    calibrated_probability: float
     confidence: float
     uncertainty: float
     top_features: list[dict[str, Any]]
@@ -81,6 +82,7 @@ class SarvexHFCE:
         self.feature_importance_: dict[str, float] = {}
         self.classes_: list[int] = []
         self.trained = False
+        self.calibration: dict[str, Any] = {"method": "none"}
         self.training_metadata: dict[str, Any] = {}
 
     def _to_array(self, X: Any) -> np.ndarray:
@@ -192,6 +194,25 @@ class SarvexHFCE:
         }
         return self
 
+    def fit_calibration(self, X_val: Any, y_val: Any) -> None:
+        # Platt scaling on change_probability using validation labels.
+        Xa = self._clean(self._to_array(X_val) if not isinstance(X_val, (list, tuple, np.ndarray)) else np.asarray(X_val, dtype="float64"))
+        if Xa.ndim == 1:
+            Xa = Xa.reshape(1, -1)
+        ya = np.asarray(y_val)
+        # binary: positive if label != NO_SIGNIFICANT_CHANGE (index 0)
+        binary = np.array([0 if (isinstance(v, (int, np.integer)) and int(v) == 0) or str(v) == "NO_SIGNIFICANT_CHANGE" else 1 for v in ya], dtype="float64")
+        preds = np.array([self.predict(row.tolist(), feature_names=self.feature_names).change_probability for row in Xa], dtype="float64")
+        # fit logistic regression a*p + b
+        try:
+            from sklearn.linear_model import LogisticRegression
+
+            lr = LogisticRegression()
+            lr.fit(preds.reshape(-1, 1), binary)
+            self.calibration = {"method": "platt", "a": float(lr.coef_[0][0]), "b": float(lr.intercept_[0])}
+        except Exception:  # noqa: BLE001
+            self.calibration = {"method": "none"}
+
     def _ml_probabilities(self, Xa: np.ndarray) -> np.ndarray:
         if self.model is None or not self.trained:
             n = Xa.shape[0]
@@ -264,6 +285,15 @@ class SarvexHFCE:
                 final_event = ml_event if self.trained else "SURFACE_DISTURBANCE"
         # change probability
         change_prob = float(min(max(fusion_score, 0.0), 1.0))
+        # calibration
+        calib = self.calibration or {"method": "none"}
+        if calib.get("method") == "platt":
+            a = float(calib.get("a", 1.0))
+            b = float(calib.get("b", 0.0))
+            import math
+            calibrated = 1.0 / (1.0 + math.exp(-(a * change_prob + b)))
+        else:
+            calibrated = change_prob
         # uncertainty: 1 - max proba, plus anomaly disagreement
         uncertainty = float(min(max(1.0 - max(proba.max() if proba.size else 0.0, fusion_score), 0.0), 1.0))
         confidence = float(min(max(max(proba.max() if proba.size else 0.0, fusion_score), 0.0), 1.0))
@@ -279,6 +309,7 @@ class SarvexHFCE:
             event_type=final_event,
             probabilities=prob_map,
             change_probability=change_prob,
+            calibrated_probability=float(min(max(calibrated, 0.0), 1.0)),
             confidence=confidence,
             uncertainty=uncertainty,
             top_features=top_features,
