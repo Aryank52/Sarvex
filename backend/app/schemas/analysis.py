@@ -166,6 +166,39 @@ class EventStatusUpdate(BaseModel):
     external_evidence_url: str | None = None
 
 
+class ConfirmEventRequest(BaseModel):
+    """Independent external evidence required to promote an event to CONFIRMED.
+
+    A model or an algorithm may never confirm its own detection. The caller must
+    supply an authoritative source (official report, seismic catalogue, gauge
+    record, field validation) with a title and a resolvable reference.
+    """
+
+    evidence_title: str = Field(min_length=3, max_length=300)
+    source_type: Literal[
+        "OFFICIAL_REPORT",
+        "SEISMIC_CATALOGUE",
+        "HYDROLOGICAL_GAUGE",
+        "FIELD_VALIDATION",
+        "PEER_REVIEWED_STUDY",
+        "OPERATIONAL_RECORD",
+    ]
+    url: str | None = Field(default=None, max_length=2000)
+    citation: str | None = Field(default=None, max_length=4000)
+    publisher: str | None = Field(default=None, max_length=300)
+    rationale: str = Field(min_length=20, max_length=4000)
+    observed_at: datetime | None = None
+    is_demo_evidence: bool = False
+
+
+class EventReviewOut(BaseModel):
+    event_id: str
+    status: str
+    taxonomy_stage: str
+    evidence_id: str | None = None
+    message: str
+
+
 class TimeSeriesOut(ORMModel):
     id: str
     aoi_id: str | None
@@ -230,6 +263,27 @@ class EvidenceOut(ORMModel):
     evidence_metadata: dict[str, Any]
     confidence: float | None
     is_demo: bool
+
+
+class EvidenceCreate(BaseModel):
+    source_type: Literal[
+        "OFFICIAL_REPORT",
+        "SEISMIC_CATALOGUE",
+        "HYDROLOGICAL_GAUGE",
+        "FIELD_VALIDATION",
+        "PEER_REVIEWED_STUDY",
+        "OPERATIONAL_RECORD",
+        "CONTEXT_DATASET",
+        "OTHER",
+    ]
+    title: str = Field(min_length=3, max_length=300)
+    url: str | None = Field(default=None, max_length=2000)
+    citation: str | None = Field(default=None, max_length=4000)
+    snippet: str | None = Field(default=None, max_length=4000)
+    confidence: float | None = Field(default=None, ge=0, le=1)
+    event_id: str | None = None
+    evidence_metadata: dict[str, Any] = Field(default_factory=dict)
+    is_demo: bool = False
 
 
 class PaginatedResults(BaseModel):

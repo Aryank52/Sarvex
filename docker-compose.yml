@@ -1,0 +1,138 @@
+version: "3.9"
+
+name: sarvex
+
+services:
+  postgres:
+    image: postgis/postgis:16-3.4
+    container_name: sarvex-postgres
+    environment:
+      POSTGRES_DB: sarvex
+      POSTGRES_USER: sarvex
+      POSTGRES_PASSWORD: sarvex
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./backend/db/init.sql:/docker-entrypoint-initdb.d/01-init.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U sarvex -d sarvex"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  redis:
+    image: redis:7-alpine
+    container_name: sarvex-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  minio:
+    image: minio/minio:latest
+    container_name: sarvex-minio
+    environment:
+      MINIO_ROOT_USER: sarvex
+      MINIO_ROOT_PASSWORD: sarvexminio
+    command: server /data --console-address ":9001"
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    volumes:
+      - minio_data:/data
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: sarvex-backend
+    environment:
+      ENVIRONMENT: development
+      DATABASE_URL: postgresql+psycopg2://sarvex:sarvex@postgres:5432/sarvex
+      OBJECT_STORAGE_BACKEND: s3
+      OBJECT_STORAGE_BUCKET: sarvex
+      OBJECT_STORAGE_ENDPOINT: http://minio:9000
+      OBJECT_STORAGE_ACCESS_KEY: sarvex
+      OBJECT_STORAGE_SECRET_KEY: sarvexminio
+      OBJECT_STORAGE_REGION: us-east-1
+      REDIS_URL: redis://redis:6379/0
+      DEMO_MODE: on
+      SEED_DEMO_ON_STARTUP: "true"
+      RUN_INLINE_WORKER: "false"
+      OFFLINE_MODE: "true"
+      CORS_ORIGINS: http://localhost:8080,http://localhost:5173
+      CODE_VERSION: 1.0.0
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./backend/config:/app/config:ro
+      - sarvex_objects:/data/objects
+    depends_on:
+      postgres:
+        condition: service_healthy
+      minio:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 15s
+      timeout: 5s
+      retries: 10
+
+  worker:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: sarvex-worker
+    environment:
+      ENVIRONMENT: development
+      DATABASE_URL: postgresql+psycopg2://sarvex:sarvex@postgres:5432/sarvex
+      OBJECT_STORAGE_BACKEND: s3
+      OBJECT_STORAGE_BUCKET: sarvex
+      OBJECT_STORAGE_ENDPOINT: http://minio:9000
+      OBJECT_STORAGE_ACCESS_KEY: sarvex
+      OBJECT_STORAGE_SECRET_KEY: sarvexminio
+      OBJECT_STORAGE_REGION: us-east-1
+      REDIS_URL: redis://redis:6379/0
+      DEMO_MODE: on
+      SEED_DEMO_ON_STARTUP: "false"
+      RUN_INLINE_WORKER: "false"
+      OFFLINE_MODE: "true"
+      CODE_VERSION: 1.0.0
+    volumes:
+      - ./backend/config:/app/config:ro
+      - sarvex_objects:/data/objects
+    depends_on:
+      postgres:
+        condition: service_healthy
+      minio:
+        condition: service_healthy
+    command: ["python", "-m", "app.worker"]
+    restart: unless-stopped
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: sarvex-frontend
+    ports:
+      - "8080:80"
+    depends_on:
+      backend:
+        condition: service_healthy
+
+volumes:
+  postgres_data:
+  redis_data:
+  minio_data:
+  sarvex_objects:

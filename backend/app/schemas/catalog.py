@@ -123,10 +123,20 @@ class CatalogItem(BaseModel):
     extra: dict[str, Any] = Field(default_factory=dict)
 
 
+class CatalogSearchResponse(BaseModel):
+    items: list[CatalogItem]
+    connector: str
+    demo_fallback: bool
+    warning: str | None = None
+    data_mode: str
+    total: int
+
+
 class IngestRequest(BaseModel):
     connector: Literal["local", "demo", "stac", "asf", "bhoonidhi"] = "demo"
     product_ref: str | None = None
     path: str | None = None
+    product_type: str | None = None
     catalog_item: CatalogItem | None = None
 
 

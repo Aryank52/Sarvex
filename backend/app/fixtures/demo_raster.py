@@ -189,8 +189,12 @@ DEMO_SCENES = {
 def _ensure_scene(scene_key: str) -> Path:
     spec = DEMO_SCENES[scene_key]
     path = DEMO_DIR / spec["file"]
-    if path.exists():
+    if path.exists() and _fixture_is_usable(path):
         return path
+    if path.exists():
+        # A fixture may be a partially written file from a failed run, or may
+        # predate a CRS fix. Regenerate it rather than failing processing later.
+        path.unlink(missing_ok=True)
     if scene_key in {"gcov_l_before", "gcov_l_mid", "gcov_l_after", "gcov_s_mid", "gcov_s_after"}:
         expansion = {"gcov_l_before": 0.0, "gcov_l_mid": 0.7, "gcov_l_after": 1.0, "gcov_s_mid": 0.5, "gcov_s_after": 0.9}[scene_key]
         seed = {"gcov_l_before": 11, "gcov_l_mid": 12, "gcov_l_after": 13, "gcov_s_mid": 21, "gcov_s_after": 22}[scene_key]
@@ -228,3 +232,19 @@ def _ensure_scene(scene_key: str) -> Path:
 
 def ensure_demo_fixtures() -> dict[str, Path]:
     return {key: _ensure_scene(key) for key in DEMO_SCENES}
+
+
+def _fixture_is_usable(path: Path) -> bool:
+    """Validate an existing fixture before trusting its cache."""
+    try:
+        import rasterio
+
+        with rasterio.open(path) as dataset:
+            return (
+                dataset.crs is not None
+                and dataset.width == WIDTH
+                and dataset.height == HEIGHT
+                and dataset.count >= 1
+            )
+    except Exception:  # noqa: BLE001 - unreadable fixture must be regenerated
+        return False

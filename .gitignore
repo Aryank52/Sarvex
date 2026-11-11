@@ -20,6 +20,7 @@ htmlcov/
 data/
 artifacts/
 fixtures/generated/
+.tmp/
 *.tif
 *.tiff
 *.h5
@@ -35,6 +36,8 @@ node_modules/
 dist/
 .vite/
 *.tsbuildinfo
+vite.config.d.ts
+vite.config.js
 
 # OS / editors
 .DS_Store

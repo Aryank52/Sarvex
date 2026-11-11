@@ -157,7 +157,8 @@ class BackscatterProcessor(Processor):
             ctx.store, result_id=ctx.result_id, name="after_backscatter", array=after, grid=reference,
             title="Latest backscatter", units="dB", method=f"Backscatter {self.algorithm}",
             source="SARVEX deterministic processing", ramp="backscatter", mask=aoi_mask,
-            product_ids=[latest] if latest else [], dates=[latest] if latest else [],
+            product_ids=[products[-1].product_id] if products else [],
+            dates=[latest] if latest else [],
         )
         layers["difference"] = save_layer(
             ctx.store, result_id=ctx.result_id, name="backscatter_difference", array=diff, grid=reference,

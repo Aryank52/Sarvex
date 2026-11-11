@@ -53,6 +53,9 @@ class Settings(BaseSettings):
     demo_mode: Literal["auto", "on", "off"] = "auto"
     run_inline_worker: bool = True
     offline_mode: bool = False
+    seed_demo_on_startup: bool = True
+    worker_poll_seconds: float = 5.0
+    worker_stale_minutes: int = 180
 
     # Storage
     database_url: str = ""

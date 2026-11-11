@@ -11,6 +11,7 @@ from __future__ import annotations
 import math
 from dataclasses import dataclass, field
 from enum import Enum
+from typing import Any
 
 
 class UnitError(ValueError):
@@ -151,19 +152,30 @@ def coherence_phase_sigma(coherence: float, looks: float = 1.0) -> float:
     return math.sqrt(max((1.0 - gamma**2), 0.0) / (2.0 * gamma**2 * n))
 
 
-def phase_to_los_displacement(phase_rad: float, wavelength_m: float) -> float:
+def phase_to_los_displacement(phase_rad: Any, wavelength_m: float) -> Any:
     """Convert interferometric phase to line-of-sight displacement [m].
 
     d_los = -lambda / (4*pi) * phi. The sign follows the convention that
     positive phase corresponds to motion away from the sensor; the convention
-    is recorded with every result.
+    is recorded with every result. Scalars return a float; array inputs return a
+    NumPy array with the same shape.
     """
     if wavelength_m <= 0:
         raise UnitError("Wavelength must be positive for phase conversion")
-    return -(wavelength_m / (4.0 * math.pi)) * float(phase_rad)
+    scale = -(wavelength_m / (4.0 * math.pi))
+    try:
+        import numpy as np
+
+        if isinstance(phase_rad, np.ndarray):
+            return scale * phase_rad.astype("float64", copy=False)
+        if isinstance(phase_rad, (list, tuple)):
+            return scale * np.asarray(phase_rad, dtype="float64")
+    except ImportError:  # pragma: no cover - numpy is a declared dependency
+        pass
+    return scale * float(phase_rad)
 
 
-def phase_to_displacement_mm(phase_rad: float, wavelength_m: float) -> float:
+def phase_to_displacement_mm(phase_rad: Any, wavelength_m: float) -> Any:
     return phase_to_los_displacement(phase_rad, wavelength_m) * 1000.0
 
 

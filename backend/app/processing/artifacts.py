@@ -48,6 +48,7 @@ def colorize(array: np.ndarray, ramp: str, vmin: float, vmax: float, valid: np.n
     colors = [_hex_to_rgb(c) for _, c in stops]
     positions = [p for p, _ in stops]
     norm = np.clip((array - vmin) / max(vmax - vmin, 1e-12), 0, 1)
+    norm = np.nan_to_num(norm, nan=0.0, posinf=1.0, neginf=0.0)
     out = np.zeros((*array.shape, 4), dtype=np.uint8)
     for channel in range(3):
         out[..., channel] = np.interp(norm, positions, [c[channel] for c in colors]).astype(np.uint8)

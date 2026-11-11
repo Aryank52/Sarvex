@@ -49,6 +49,7 @@ logger = logging.getLogger("sarvex.processing")
 TERMINAL_STATES = {"COMPLETED", "FAILED", "CANCELLED"}
 PROGRESS = {
     "QUEUED": 0.0,
+    "CLAIMED": 2.0,
     "VALIDATING": 8.0,
     "DOWNLOADING": 18.0,
     "PREPROCESSING": 32.0,
@@ -74,6 +75,9 @@ def append_log(job: ProcessingJob, message: str, level: str = "INFO", **extra: A
 
 
 def transition(session: Session, job: ProcessingJob, status: str, message: str) -> None:
+    # Refresh the status so an external cancellation request is honoured even
+    # though the worker holds its own ORM instance.
+    session.refresh(job, attribute_names=["status"])
     if job.status == "CANCELLED" and status not in TERMINAL_STATES:
         raise _Cancelled()
     job.status = status
@@ -141,8 +145,12 @@ def _materialize_inputs(
     return inputs
 
 
-def execute_job(job_id: str) -> str:
-    """Execute a queued job synchronously in a fresh session. Returns final status."""
+def execute_job(job_id: str, *, claimed: bool = False) -> str:
+    """Execute a queued job synchronously in a fresh session. Returns final status.
+
+    ``claimed`` is set by the standalone worker after an atomic claim. The API
+    and demo seeder call with the default and therefore only run QUEUED jobs.
+    """
     settings = get_settings()
     with session_scope() as session:
         job = session.get(ProcessingJob, job_id)
@@ -150,7 +158,7 @@ def execute_job(job_id: str) -> str:
             raise ValueError(f"Job {job_id} not found")
         if job.status in TERMINAL_STATES:
             return job.status
-        if job.status != "QUEUED":
+        if job.status != "QUEUED" and not (claimed and job.status == "CLAIMED"):
             # A worker must not steal an actively running job.
             return job.status
         token = correlation_id_var.set(job.correlation_id)

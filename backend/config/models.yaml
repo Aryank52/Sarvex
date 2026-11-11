@@ -1,0 +1,153 @@
+# ---------------------------------------------------------------------------
+# SARVEX model registry.
+#
+# Business logic never hard-codes a model. Each category resolves through this
+# file. Supplied model specifications are integrated here (and in
+# app/ml/providers.py if a new wire protocol is required) without touching
+# processing, API, RAG or copilot code.
+#
+# Secrets are referenced as environment variable NAMES (api_key_env), never
+# stored inline. `dimension` for embeddings is the model's true output
+# dimension; the storage layer pads to the pgvector capacity automatically.
+# ---------------------------------------------------------------------------
+version: 1
+
+models:
+  change_detection:
+    - provider: sarvex
+      name: robust_mad_change_detector
+      version: "1.0"
+      task: surface_change_detection
+      framework: numpy
+      type: deterministic_baseline
+      is_default: true
+      config:
+        z_threshold: 3.5
+        min_magnitude: 1.0
+
+  event_classifier:
+    - provider: sarvex
+      name: taxonomy_rule_classifier
+      version: "1.0"
+      task: event_category_assignment
+      framework: sarvex
+      type: deterministic_rules
+      is_default: true
+      config:
+        categories:
+          - SURFACE_DISTURBANCE
+          - GROUND_DEFORMATION
+          - FLOOD_WATER_CHANGE
+          - WETLAND_CHANGE
+          - AGRICULTURAL_CHANGE
+          - VEGETATION_CHANGE
+          - CRYOSPHERE_CHANGE
+          - STRUCTURAL_CHANGE
+          - UNCLASSIFIED_CHANGE
+
+  anomaly_detection:
+    - provider: sarvex
+      name: mad_zscore_anomaly
+      version: "1.0"
+      task: pixel_anomaly_detection
+      framework: numpy
+      type: deterministic_baseline
+      is_default: true
+
+  embedding:
+    - provider: sarvex
+      name: sarvex-hash-embedding
+      version: "1.0"
+      task: text_embedding
+      framework: numpy
+      type: deterministic_feature_hashing
+      dimension: 384
+      is_default: true
+      config:
+        semantic: false
+        note: >-
+          Deterministic signed feature hashing. Real lexical vector retrieval
+          offline; replace with a supplied neural embedding model via this
+          registry entry.
+    - provider: openai_compatible
+      name: supplied-embedding
+      version: "1.0"
+      task: text_embedding
+      framework: http
+      type: openai_compatible
+      dimension: 1536
+      is_default: false
+      config:
+        base_url_env: EMBEDDING_BASE_URL
+        api_key_env: EMBEDDING_API_KEY
+
+  reranker:
+    - provider: sarvex
+      name: lexical-overlap-reranker
+      version: "1.0"
+      task: passage_reranking
+      framework: numpy
+      type: deterministic_lexical
+      is_default: true
+    - provider: http
+      name: supplied-reranker
+      version: "1.0"
+      task: passage_reranking
+      framework: http
+      type: http_rerank
+      is_default: false
+      config:
+        base_url_env: RERANKER_BASE_URL
+        api_key_env: RERANKER_API_KEY
+
+  llm:
+    - provider: sarvex
+      name: grounded-extractive-composer
+      version: "1.0"
+      task: grounded_scientific_explanation
+      framework: sarvex
+      type: deterministic_grounded
+      is_default: true
+      config:
+        note: >-
+          Evidence-only composer. It never generates scientific claims beyond
+          the structured analysis context and retrieved citations. This is the
+          safe default and the degraded fallback.
+    - provider: openai_compatible
+      name: supplied-llm
+      version: "1.0"
+      task: grounded_scientific_explanation
+      framework: http
+      type: openai_compatible
+      is_default: false
+      config:
+        base_url_env: LLM_BASE_URL
+        api_key_env: LLM_API_KEY
+        json_mode: true
+
+  vision_language:
+    - provider: sarvex
+      name: disabled-vision-language
+      version: "0.0"
+      task: image_interpretation
+      framework: none
+      type: disabled
+      is_default: true
+
+  segmentation:
+    - provider: sarvex
+      name: connected_components_segmentation
+      version: "1.0"
+      task: mask_segmentation
+      framework: scipy
+      type: deterministic_morphology
+      is_default: true
+
+  regression:
+    - provider: sarvex
+      name: theil_sen_regression
+      version: "1.0"
+      task: robust_trend_estimation
+      framework: scipy
+      type: deterministic_robust
+      is_default: true

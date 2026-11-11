@@ -65,7 +65,12 @@ class ConnectorRegistry:
         try:
             products = connector.search(query)
             if products:
-                return products, connector.name, connector.mode == "demo", None
+                return (
+                    products,
+                    connector.name,
+                    connector.mode == "demo" and connector_name.lower() != "demo",
+                    None,
+                )
             if connector_name != "demo" and settings.demo_mode == "auto":
                 demo_products = self.demo.search(query)
                 if demo_products:

@@ -29,6 +29,7 @@ class ModelSpec:
     provider: str
     name: str
     version: str
+    model_type: str = ""
     task: str | None = None
     framework: str | None = None
     artifact_uri: str | None = None

@@ -13,7 +13,7 @@ from app.products.metadata import NormalizedProductMetadata, ValidationReport
 
 PRODUCT_TYPES = ("RSLC", "GSLC", "GCOV", "RIFG", "RUNW", "GUNW", "ROFF", "GOFF")
 
-_POL_PATTERN = re.compile(r"\b(VV|VH|HH|HV)\b", re.IGNORECASE)
+_POL_PATTERN = re.compile(r"(?<![A-Z0-9])(VV|VH|HH|HV)(?![A-Z0-9])", re.IGNORECASE)
 _KNOWN_BANDS = ("L", "S", "C", "X", "P")
 
 

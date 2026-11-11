@@ -256,10 +256,29 @@ class DeterministicGroundedLLM(LLMProvider):
             stats = analysis.get("statistics") or {}
             if stats.get("median_change_db") is not None:
                 derived.append(f"Median backscatter change in detected regions: {stats['median_change_db']:.2f} dB.")
+            if stats.get("median_ratio_change_db") is not None:
+                derived.append(
+                    "Median VV/VH ratio change in detected regions: "
+                    f"{stats['median_ratio_change_db']:.2f} dB."
+                )
             if stats.get("total_change_area_km2") is not None:
                 derived.append(f"Detected area: {stats['total_change_area_km2']:.3f} km².")
             if stats.get("median_displacement_mm") is not None:
                 derived.append(f"Median LOS displacement: {stats['median_displacement_mm']:.2f} mm (relative to AOI median).")
+            if stats.get("p95_displacement_mm") is not None:
+                derived.append(
+                    f"95th-percentile |LOS displacement|: {stats['p95_displacement_mm']:.2f} mm."
+                )
+            if stats.get("trend_db_per_year") is not None:
+                derived.append(
+                    f"Robust Theil-Sen backscatter trend: {stats['trend_db_per_year']:.3f} dB/year."
+                )
+            if stats.get("magnitude_m") is not None:
+                derived.append(
+                    "Estimated image offset magnitude: "
+                    f"{stats['magnitude_m']:.2f} m (shift x={stats.get('shift_x_px', 0.0):.2f} px, "
+                    f"y={stats.get('shift_y_px', 0.0):.2f} px)."
+                )
             if analysis.get("confidence") is not None:
                 uncertainties.append(f"Analysis confidence score: {float(analysis['confidence']):.2f} (detection confidence, not hazard probability).")
             if analysis.get("uncertainty") is not None:
