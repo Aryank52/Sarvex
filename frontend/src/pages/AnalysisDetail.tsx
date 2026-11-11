@@ -71,6 +71,20 @@ export function AnalysisDetail() {
   const detail = useApi<ResultDetail>(resultId ? `/results/${resultId}` : null);
   const layers = useApi<LayersResponse>(resultId ? `/results/${resultId}/layers` : null);
   const timeseries = useApi<TimeSeries[]>(resultId ? `/results/${resultId}/timeseries` : null);
+  const hfce = useApi<{
+    available: boolean;
+    prediction?: {
+      event_type: string;
+      change_probability: number;
+      confidence: number;
+      uncertainty: number;
+      top_features: { feature: string; importance?: number; value?: unknown }[];
+      baseline_score: number;
+      ml_score: number;
+      anomaly_score: number;
+    };
+    caveat?: string;
+  }>(resultId ? `/results/${resultId}/hfce` : null);
   const features = useApi<Feature[]>(resultId ? `/results/${resultId}/features` : null);
   const [selectedLayer, setSelectedLayer] = useState<string | null>(null);
   const [report, setReport] = useState<Report | null>(null);
@@ -428,6 +442,68 @@ export function AnalysisDetail() {
           )}
         </section>
       </div>
+
+      <section className="panel">
+        <div className="panel-head">
+          <div>
+            <div className="kicker">Model evidence</div>
+            <h2>SARVEX-HFCE classification</h2>
+          </div>
+          <span className="muted">{hfce.data?.available ? "available" : "unavailable"}</span>
+        </div>
+        {hfce.loading ? <LoadingBlock label="Running HFCE" rows={3} /> : null}
+        {hfce.error ? <ErrorState error={hfce.error} retry={hfce.reload} /> : null}
+        {hfce.data?.available && hfce.data.prediction ? (
+          <>
+            <div className="stat-grid stat-grid-compact">
+              <div>
+                <span>Predicted type</span>
+                <strong>{hfce.data.prediction.event_type.replaceAll("_", " ")}</strong>
+              </div>
+              <div>
+                <span>Change probability</span>
+                <strong>{formatPercent(hfce.data.prediction.change_probability)}</strong>
+              </div>
+              <div>
+                <span>Confidence</span>
+                <strong>{formatPercent(hfce.data.prediction.confidence)}</strong>
+              </div>
+              <div>
+                <span>Uncertainty</span>
+                <strong>{formatNumber(hfce.data.prediction.uncertainty, 3)}</strong>
+              </div>
+              <div>
+                <span>Baseline score</span>
+                <strong>{formatNumber(hfce.data.prediction.baseline_score, 3)}</strong>
+              </div>
+              <div>
+                <span>ML score</span>
+                <strong>{formatNumber(hfce.data.prediction.ml_score, 3)}</strong>
+              </div>
+            </div>
+            {hfce.data.prediction.top_features.length ? (
+              <div className="stat-list" style={{ marginTop: 12 }}>
+                <div className="mini-heading">Top contributing features</div>
+                {hfce.data.prediction.top_features.map((item, index) => (
+                  <div className="stat-row" key={index}>
+                    <span>{item.feature}</span>
+                    <strong>
+                      {typeof item.importance === "number"
+                        ? item.importance.toFixed(4)
+                        : item.value !== undefined
+                          ? String(item.value)
+                          : "—"}
+                    </strong>
+                  </div>
+                ))}
+              </div>
+            ) : null}
+            {hfce.data.caveat ? <p className="fine-print">{hfce.data.caveat}</p> : null}
+          </>
+        ) : (
+          <p className="muted">HFCE model is not available for this result.</p>
+        )}
+      </section>
 
       {timeseries.data?.length ? (
         <section className="panel">

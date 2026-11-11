@@ -616,3 +616,18 @@ class EvidenceEdge(UUIDMixin, TimestampMixin, Base):
     target_id: Mapped[str] = mapped_column(String(64), index=True)
     edge_type: Mapped[str] = mapped_column(String(60), index=True)
     properties: Mapped[dict[str, Any]] = mapped_column(JSON, default=dict)
+
+class ExperimentRun(UUIDMixin, TimestampMixin, Base):
+    """Research experiment run for ablation/comparison."""
+
+    __tablename__ = "experiment_runs"
+
+    experiment_id: Mapped[str] = mapped_column(String(120), index=True)
+    hypothesis: Mapped[str | None] = mapped_column(Text)
+    dataset_version: Mapped[str | None] = mapped_column(String(120))
+    baseline: Mapped[str | None] = mapped_column(String(120))
+    candidate_model: Mapped[str | None] = mapped_column(String(120))
+    parameters: Mapped[dict[str, Any]] = mapped_column(JSON, default=dict)
+    metrics: Mapped[dict[str, Any]] = mapped_column(JSON, default=dict)
+    result_artifact: Mapped[str | None] = mapped_column(Text)
+    status: Mapped[str] = mapped_column(String(24), default="COMPLETED")
