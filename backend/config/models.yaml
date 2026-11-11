@@ -124,6 +124,20 @@ models:
         base_url_env: LLM_BASE_URL
         api_key_env: LLM_API_KEY
         json_mode: true
+    - provider: nvidia
+      name: nvidia-nemotron
+      version: "1.0"
+      task: grounded_scientific_explanation
+      framework: http
+      type: openai_compatible
+      is_default: false
+      config:
+        base_url_env: NEMOTRON_BASE_URL
+        api_key_env: NEMOTRON_API_KEY
+        json_mode: true
+        note: >-
+          NVIDIA NIM/OpenAI-compatible endpoint. Configure NEMOTRON_BASE_URL and
+          NEMOTRON_API_KEY. Falls back to supplied-llm or deterministic composer.
 
   vision_language:
     - provider: sarvex
@@ -142,6 +156,20 @@ models:
       framework: scipy
       type: deterministic_morphology
       is_default: true
+
+  sarvex_hfce:
+    - provider: sarvex
+      name: sarvex-hfce
+      version: "1.0"
+      task: surface_change_classification
+      framework: xgboost
+      type: hybrid_frequency_context_ensemble
+      is_default: true
+      config:
+        artifact_dir: artifacts/models/hfce/latest
+        note: >-
+          SARVEX-HFCE. Trained on pseudo-labelled features; metrics are not
+          real-world accuracy. See training_manifest.json.
 
   regression:
     - provider: sarvex

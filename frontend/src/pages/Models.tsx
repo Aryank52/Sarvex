@@ -34,6 +34,18 @@ export function Models() {
   const models = useApi<ModelsResponse>("/models");
   const health = useApi<{ models: ModelInfo[]; summary: ModelSummary; config_path: string }>("/health/models");
   const runs = useApi<{ runs: ModelRun[] }>("/models/runs?limit=50");
+  const hfce = useApi<{
+    available: boolean;
+    artifact_dir?: string;
+    model_version?: string;
+    metrics?: { validation: Record<string, number>; test: Record<string, number> };
+    caveat?: string;
+    trained_at?: string;
+    n_samples?: number;
+    class_distribution?: Record<string, number>;
+    feature_importance?: Record<string, number>;
+    shap_summary?: Record<string, number>;
+  }>("/models/hfce/status");
   const [busy, setBusy] = useState(false);
   const [notice, setNotice] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -171,6 +183,48 @@ export function Models() {
             </div>
           </div>
         ))}
+      </section>
+
+      <section className="panel">
+        <div className="panel-head">
+          <div>
+            <div className="kicker">SARVEX-HFCE</div>
+            <h2>Trained model status</h2>
+          </div>
+          <span className="muted">{hfce.data?.available ? `v${hfce.data.model_version}` : "unavailable"}</span>
+        </div>
+        {hfce.error ? <ErrorState error={hfce.error} retry={hfce.reload} /> : null}
+        {hfce.loading ? <LoadingBlock label="Loading HFCE status" rows={4} /> : null}
+        {hfce.data?.available ? (
+          <>
+            <div className="kpi-grid kpi-grid-five">
+              <Kpi label="Samples" value={hfce.data.n_samples ?? "—"} detail="pseudo-labelled (PSEUDO)" tone="cyan" />
+              <Kpi label="Test accuracy" value={hfce.data.metrics?.test?.accuracy !== undefined ? `${(hfce.data.metrics.test.accuracy * 100).toFixed(1)}%` : "—"} detail="held-out split" tone="green" />
+              <Kpi label="Test macro-F1" value={hfce.data.metrics?.test?.f1_macro !== undefined ? hfce.data.metrics.test.f1_macro.toFixed(3) : "—"} detail="held-out split" tone="violet" />
+              <Kpi label="Test precision" value={hfce.data.metrics?.test?.precision_macro !== undefined ? hfce.data.metrics.test.precision_macro.toFixed(3) : "—"} detail="macro" tone="amber" />
+              <Kpi label="Test recall" value={hfce.data.metrics?.test?.recall_macro !== undefined ? hfce.data.metrics.test.recall_macro.toFixed(3) : "—"} detail="macro" tone="cyan" />
+            </div>
+            <div className="guardrail-note">
+              <strong>Caveat:</strong> {hfce.data.caveat} Trained {hfce.data.trained_at}.
+            </div>
+            {hfce.data.feature_importance ? (
+              <div className="stat-list" style={{ marginTop: 12 }}>
+                <div className="mini-heading">Feature importance (top)</div>
+                {Object.entries(hfce.data.feature_importance)
+                  .sort((a, b) => b[1] - a[1])
+                  .slice(0, 8)
+                  .map(([name, value]) => (
+                    <div className="stat-row" key={name}>
+                      <span>{name}</span>
+                      <strong>{value.toFixed(4)}</strong>
+                    </div>
+                  ))}
+              </div>
+            ) : null}
+          </>
+        ) : (
+          <p className="muted">HFCE model is not available. Run training to enable classification.</p>
+        )}
       </section>
 
       <div className="detail-grid-two">

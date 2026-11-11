@@ -21,6 +21,7 @@ class ModelCategory(str, Enum):
     RERANKER = "reranker"
     LLM = "llm"
     VISION_LANGUAGE = "vision_language"
+    SARVEX_HFCE = "sarvex_hfce"
 
 
 @dataclass

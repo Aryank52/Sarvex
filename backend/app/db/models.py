@@ -602,3 +602,17 @@ class SystemConfiguration(UUIDMixin, TimestampMixin, Base):
 Index("ix_observations_acq_type", Observation.acquisition_start, Observation.product_type)
 Index("ix_events_type_time", ChangeEvent.event_type, ChangeEvent.start_time)
 Index("ix_jobs_status_queued", ProcessingJob.status, ProcessingJob.queued_at)
+
+class EvidenceEdge(UUIDMixin, TimestampMixin, Base):
+    """Scientific evidence graph edge: links questions, analyses, datasets,
+    observations, runs, features, model runs, events, context and evidence.
+    """
+
+    __tablename__ = "evidence_edges"
+
+    source_type: Mapped[str] = mapped_column(String(60), index=True)
+    source_id: Mapped[str] = mapped_column(String(64), index=True)
+    target_type: Mapped[str] = mapped_column(String(60), index=True)
+    target_id: Mapped[str] = mapped_column(String(64), index=True)
+    edge_type: Mapped[str] = mapped_column(String(60), index=True)
+    properties: Mapped[dict[str, Any]] = mapped_column(JSON, default=dict)

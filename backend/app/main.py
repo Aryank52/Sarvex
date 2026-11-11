@@ -42,6 +42,20 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     init_db()
     logger.info("Database schema ready")
 
+    # Ensure a SARVEX-HFCE artifact exists for demo/intelligence features.
+    try:
+        from app.services.hfce import find_latest_model_dir
+        import subprocess, sys
+
+        if find_latest_model_dir() is None:
+            logger.info("HFCE model artifact missing; training a pseudo-labelled baseline")
+            subprocess.run(
+                [sys.executable, "scripts/train_sarvex_hfce.py", "--n-samples", "600", "--output", "artifacts/models/hfce"],
+                check=False,
+            )
+    except Exception:  # noqa: BLE001
+        logger.exception("HFCE bootstrap failed")
+
     # Synchronize the declarative model registry into the database.
     try:
         from app.ml.registry import get_model_registry
