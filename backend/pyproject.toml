@@ -1,0 +1,39 @@
+[project]
+name = "sarvex-backend"
+version = "1.0.0"
+description = "SARVEX - AI-Powered NISAR Surface Change Intelligence Platform"
+requires-python = ">=3.11"
+dependencies = [
+  "fastapi>=0.115",
+  "uvicorn[standard]>=0.30",
+  "pydantic>=2.7",
+  "pydantic-settings>=2.2",
+  "SQLAlchemy>=2.0",
+  "psycopg2-binary>=2.9",
+  "geoalchemy2>=0.15",
+  "pgvector>=0.2",
+  "shapely>=2.0",
+  "numpy>=1.26",
+  "scipy>=1.11",
+  "rasterio>=1.3",
+  "h5py>=3.10",
+  "boto3>=1.34",
+  "redis>=5.0",
+  "pypdf>=4.0",
+  "markdown>=3.6",
+  "python-multipart>=0.0.9",
+  "httpx>=0.27",
+  "PyYAML>=6.0",
+]
+
+[project.optional-dependencies]
+dev = ["pytest>=8.0", "pytest-asyncio>=0.23"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-q"
+filterwarnings = ["ignore::DeprecationWarning"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
